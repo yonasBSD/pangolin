@@ -70,7 +70,9 @@ export const subscriptions = sqliteTable("subscriptions", {
     canceledAt: integer("canceledAt"),
     createdAt: integer("createdAt").notNull(),
     updatedAt: integer("updatedAt"),
-    billingCycleAnchor: integer("billingCycleAnchor")
+    version: integer("version"),
+    billingCycleAnchor: integer("billingCycleAnchor"),
+    type: text("type") // tier1, tier2, tier3, or license
 });
 
 export const subscriptionItems = sqliteTable("subscriptionItems", {
@@ -84,6 +86,7 @@ export const subscriptionItems = sqliteTable("subscriptionItems", {
         }),
     planId: text("planId").notNull(),
     priceId: text("priceId"),
+    featureId: text("featureId"),
     meterId: text("meterId"),
     unitAmount: real("unitAmount"),
     tiers: text("tiers"),
@@ -126,6 +129,7 @@ export const limits = sqliteTable("limits", {
         })
         .notNull(),
     value: real("value"),
+    override: integer("override", { mode: "boolean" }).default(false),
     description: text("description")
 });
 

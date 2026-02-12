@@ -24,9 +24,8 @@ import { idp, idpOidcConfig } from "@server/db";
 import { eq, and } from "drizzle-orm";
 import { encrypt } from "@server/lib/crypto";
 import config from "@server/lib/config";
-import { build } from "@server/build";
-import { getOrgTierData } from "#private/lib/billing";
-import { TierId } from "@server/lib/billing/tiers";
+import { isSubscribed } from "#private/lib/isSubscribed";
+import { tierMatrix } from "@server/lib/billing/tierMatrix";
 
 const paramsSchema = z
     .object({
@@ -109,22 +108,18 @@ export async function updateOrgOidcIdp(
             emailPath,
             namePath,
             name,
-            autoProvision,
             roleMapping,
             tags
         } = parsedBody.data;
 
-        if (build === "saas") {
-            const { tier, active } = await getOrgTierData(orgId);
-            const subscribed = tier === TierId.STANDARD;
-            if (!subscribed) {
-                return next(
-                    createHttpError(
-                        HttpCode.FORBIDDEN,
-                        "This organization's current plan does not support this feature."
-                    )
-                );
-            }
+        let { autoProvision } = parsedBody.data;
+
+        const subscribed = await isSubscribed(
+            orgId,
+            tierMatrix.deviceApprovals
+        );
+        if (!subscribed) {
+            autoProvision = false;
         }
 
         // Check if IDP exists and is of type OIDC

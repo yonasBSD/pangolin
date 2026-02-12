@@ -95,7 +95,7 @@ export const privateConfigSchema = z.object({
         .object({
             enable_redis: z.boolean().optional().default(false),
             use_pangolin_dns: z.boolean().optional().default(false),
-            use_org_only_idp: z.boolean().optional().default(false)
+            use_org_only_idp: z.boolean().optional().default(false),
         })
         .optional()
         .prefault({}),
@@ -176,9 +176,9 @@ export const privateConfigSchema = z.object({
                 .string()
                 .optional()
                 .transform(getEnvOrYaml("STRIPE_WEBHOOK_SECRET")),
-            s3Bucket: z.string(),
-            s3Region: z.string().default("us-east-1"),
-            localFilePath: z.string()
+            // s3Bucket: z.string(),
+            // s3Region: z.string().default("us-east-1"),
+            // localFilePath: z.string().optional()
         })
         .optional()
 });

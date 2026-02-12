@@ -24,10 +24,9 @@ import { idp, idpOidcConfig, idpOrg, orgs } from "@server/db";
 import { generateOidcRedirectUrl } from "@server/lib/idp/generateRedirectUrl";
 import { encrypt } from "@server/lib/crypto";
 import config from "@server/lib/config";
-import { build } from "@server/build";
-import { getOrgTierData } from "#private/lib/billing";
-import { TierId } from "@server/lib/billing/tiers";
 import { CreateOrgIdpResponse } from "@server/routers/orgIdp/types";
+import { isSubscribed } from "#private/lib/isSubscribed";
+import { tierMatrix } from "@server/lib/billing/tierMatrix";
 
 const paramsSchema = z.strictObject({ orgId: z.string().nonempty() });
 
@@ -103,23 +102,19 @@ export async function createOrgOidcIdp(
             emailPath,
             namePath,
             name,
-            autoProvision,
             variant,
             roleMapping,
             tags
         } = parsedBody.data;
 
-        if (build === "saas") {
-            const { tier, active } = await getOrgTierData(orgId);
-            const subscribed = tier === TierId.STANDARD;
-            if (!subscribed) {
-                return next(
-                    createHttpError(
-                        HttpCode.FORBIDDEN,
-                        "This organization's current plan does not support this feature."
-                    )
-                );
-            }
+        let { autoProvision } = parsedBody.data;
+
+        const subscribed = await isSubscribed(
+            orgId,
+            tierMatrix.deviceApprovals
+        );
+        if (!subscribed) {
+            autoProvision = false;
         }
 
         const key = config.getRawConfig().server.secret!;

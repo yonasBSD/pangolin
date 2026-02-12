@@ -121,7 +121,10 @@ export const orgNavSections = (env?: Env): SidebarNavSection[] => [
                 href: "/{orgId}/settings/access/roles",
                 icon: <Users className="size-4 flex-none" />
             },
-            ...(build === "saas" || env?.flags.useOrgOnlyIdp
+            // PaidFeaturesAlert
+            ...((build === "oss" && !env?.flags.disableEnterpriseFeatures) ||
+            build === "saas" ||
+            env?.flags.useOrgOnlyIdp
                 ? [
                       {
                           title: "sidebarIdentityProviders",
@@ -130,7 +133,7 @@ export const orgNavSections = (env?: Env): SidebarNavSection[] => [
                       }
                   ]
                 : []),
-            ...(build !== "oss"
+            ...(!env?.flags.disableEnterpriseFeatures
                 ? [
                       {
                           title: "sidebarApprovals",
@@ -155,7 +158,7 @@ export const orgNavSections = (env?: Env): SidebarNavSection[] => [
                     href: "/{orgId}/settings/logs/request",
                     icon: <SquareMousePointer className="size-4 flex-none" />
                 },
-                ...(build != "oss"
+                ...(!env?.flags.disableEnterpriseFeatures
                     ? [
                           {
                               title: "sidebarLogsAccess",

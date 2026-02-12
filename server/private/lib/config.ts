@@ -125,16 +125,6 @@ export class PrivateConfig {
                 this.rawPrivateConfig.server.reo_client_id;
         }
 
-        if (this.rawPrivateConfig.stripe?.s3Bucket) {
-            process.env.S3_BUCKET = this.rawPrivateConfig.stripe.s3Bucket;
-        }
-        if (this.rawPrivateConfig.stripe?.localFilePath) {
-            process.env.LOCAL_FILE_PATH =
-                this.rawPrivateConfig.stripe.localFilePath;
-        }
-        if (this.rawPrivateConfig.stripe?.s3Region) {
-            process.env.S3_REGION = this.rawPrivateConfig.stripe.s3Region;
-        }
         if (this.rawPrivateConfig.flags.use_pangolin_dns) {
             process.env.USE_PANGOLIN_DNS =
                 this.rawPrivateConfig.flags.use_pangolin_dns.toString();
