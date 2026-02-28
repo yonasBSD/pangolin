@@ -108,12 +108,12 @@ const listSitesSchema = z.object({
         }),
     query: z.string().optional(),
     sort_by: z
-        .enum(["megabytesIn", "megabytesOut"])
+        .enum(["name", "megabytesIn", "megabytesOut"])
         .optional()
         .catch(undefined)
         .openapi({
             type: "string",
-            enum: ["megabytesIn", "megabytesOut"],
+            enum: ["name", "megabytesIn", "megabytesOut"],
             description: "Field to sort by"
         }),
     order: z
@@ -278,7 +278,7 @@ export async function listSites(
 
         // we need to add `as` so that drizzle filters the result as a subquery
         const countQuery = db.$count(
-            querySitesBase().where(and(...conditions))
+            querySitesBase().where(and(...conditions)).as("filtered_sites")
         );
 
         const siteListQuery = baseQuery
