@@ -31,12 +31,23 @@ const listSiteResourcesQuerySchema = z.object({
     sort_by: z
         .enum(["name"])
         .optional()
-        .catch(undefined),
+        .catch(undefined)
+        .openapi({
+            type: "string",
+            enum: ["name"],
+            description: "Field to sort by"
+        }),
     order: z
         .enum(["asc", "desc"])
         .optional()
         .default("asc")
         .catch("asc")
+        .openapi({
+            type: "string",
+            enum: ["asc", "desc"],
+            default: "asc",
+            description: "Sort order"
+        })
 });
 
 export type ListSiteResourcesResponse = {
@@ -112,7 +123,7 @@ export async function listSiteResources(
                     ? order === "asc"
                         ? asc(siteResources[sort_by])
                         : desc(siteResources[sort_by])
-                    : asc(siteResources.siteResourceId)
+                    : asc(siteResources.name)
             )
             .limit(limit)
             .offset(offset);
