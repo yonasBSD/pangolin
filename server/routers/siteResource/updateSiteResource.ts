@@ -43,7 +43,8 @@ const updateSiteResourceParamsSchema = z.strictObject({
 const updateSiteResourceSchema = z
     .strictObject({
         name: z.string().min(1).max(255).optional(),
-        siteIds: z.array(z.int()),
+        siteIds: z.array(z.int()).optional(),
+        siteId: z.int().positive().optional(),
         // niceId: z.string().min(1).max(255).regex(/^[a-zA-Z0-9-]+$/, "niceId can only contain letters, numbers, and dashes").optional(),
         niceId: z
             .string()
@@ -142,6 +143,17 @@ const updateSiteResourceSchema = z
             message:
                 "HTTP mode requires scheme (http or https) and a valid destination port"
         }
+    )
+    .refine(
+        (data) => {
+            return (
+                (data.siteIds !== undefined && data.siteIds.length > 0) ||
+                data.siteId !== undefined
+            );
+        },
+        {
+            message: "At least one of siteIds or siteId must be provided"
+        }
     );
 
 export type UpdateSiteResourceBody = z.infer<typeof updateSiteResourceSchema>;
@@ -196,7 +208,8 @@ export async function updateSiteResource(
         const { siteResourceId } = parsedParams.data;
         const {
             name,
-            siteIds, // because it can change
+            siteIds: siteIdsInput = [], // because it can change
+            siteId,
             niceId,
             mode,
             scheme,
@@ -216,6 +229,12 @@ export async function updateSiteResource(
             domainId,
             subdomain
         } = parsedBody.data;
+
+        // Backward compatibility: merge deprecated siteId into siteIds array
+        const siteIds = [...siteIdsInput];
+        if (siteId !== undefined && !siteIds.includes(siteId)) {
+            siteIds.push(siteId);
+        }
 
         // Check if site resource exists
         const [existingSiteResource] = await db
@@ -440,9 +459,12 @@ export async function updateSiteResource(
                         destinationPort,
                         enabled,
                         alias: alias ? alias.trim() : null,
-                        tcpPortRangeString,
-                        udpPortRangeString,
-                        disableIcmp,
+                        tcpPortRangeString:
+                            mode == "http" ? "443,80" : tcpPortRangeString,
+                        udpPortRangeString:
+                            mode == "http" ? "" : udpPortRangeString,
+                        disableIcmp:
+                            disableIcmp || (mode == "http" ? true : false), // default to true for http resources, otherwise false
                         domainId,
                         subdomain: finalSubdomain,
                         fullDomain,
@@ -734,6 +756,9 @@ export async function handleMessagingForUpdatedSiteResource(
     const fullDomainChanged =
         existingSiteResource &&
         existingSiteResource.fullDomain !== updatedSiteResource.fullDomain;
+    const sslChanged =
+        existingSiteResource &&
+        existingSiteResource.ssl !== updatedSiteResource.ssl;
     const portRangesChanged =
         existingSiteResource &&
         (existingSiteResource.tcpPortRangeString !==
@@ -749,6 +774,7 @@ export async function handleMessagingForUpdatedSiteResource(
         destinationChanged ||
         aliasChanged ||
         fullDomainChanged ||
+        sslChanged ||
         portRangesChanged ||
         destinationPortChanged
     ) {
@@ -765,9 +791,10 @@ export async function handleMessagingForUpdatedSiteResource(
                 );
             }
 
-            // Only update targets on newt if destination changed
+            // Only update targets on newt if these items change
             if (
                 destinationChanged ||
+                sslChanged || // we need to push a new cert if the ssl changed
                 portRangesChanged ||
                 fullDomainChanged || // if the domain changes we need to update the certs and stuff
                 destinationPortChanged

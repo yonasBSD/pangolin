@@ -37,11 +37,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Selectedsite, SitesSelector } from "@app/components/site-selector";
 import { useEffect, useMemo, useState, useTransition } from "react";
-
 import CreateInternalResourceDialog from "@app/components/CreateInternalResourceDialog";
 import EditInternalResourceDialog from "@app/components/EditInternalResourceDialog";
-import { orgQueries } from "@app/lib/queries";
-import { useQuery } from "@tanstack/react-query";
 import type { PaginationState } from "@tanstack/react-table";
 import { ControlledDataTable } from "./ui/controlled-data-table";
 import { useNavigationContext } from "@app/hooks/useNavigationContext";
@@ -54,6 +51,8 @@ import {
     ResourceSitesStatusCell,
     type ResourceSiteRow
 } from "@app/components/ResourceSitesStatusCell";
+import { ResourceAccessCertIndicator } from "@app/components/ResourceAccessCertIndicator";
+import { build } from "@server/build";
 
 export type InternalResourceSiteRow = ResourceSiteRow;
 
@@ -206,7 +205,11 @@ export default function ClientResourcesTable({
         const { siteNames, siteNiceIds, orgId } = resourceRow;
 
         if (!siteNames || siteNames.length === 0) {
-            return <span>-</span>;
+            return (
+                <span className="text-muted-foreground">
+                    {t("noSites", { defaultValue: "No sites" })}
+                </span>
+            );
         }
 
         if (siteNames.length === 1) {
@@ -439,13 +442,34 @@ export default function ClientResourcesTable({
                     );
                 }
                 if (resourceRow.mode === "http") {
-                    const url = `${resourceRow.ssl ? "https" : "http"}://${resourceRow.fullDomain}`;
+                    const domainId = resourceRow.domainId;
+                    const fullDomain = resourceRow.fullDomain;
+                    const url = `${resourceRow.ssl ? "https" : "http"}://${fullDomain}`;
+                    const did =
+                        build !== "oss" &&
+                        resourceRow.ssl &&
+                        domainId != null &&
+                        domainId !== "" &&
+                        fullDomain != null &&
+                        fullDomain !== "";
+
                     return (
-                        <CopyToClipboard
-                            text={url}
-                            isLink={isSafeUrlForLink(url)}
-                            displayText={url}
-                        />
+                        <div className="flex items-center gap-2 min-w-0">
+                            {did ? (
+                                <ResourceAccessCertIndicator
+                                    orgId={resourceRow.orgId}
+                                    domainId={domainId}
+                                    fullDomain={fullDomain}
+                                />
+                            ) : null}
+                            <div className="">
+                                <CopyToClipboard
+                                    text={url}
+                                    isLink={isSafeUrlForLink(url)}
+                                    displayText={url}
+                                />
+                            </div>
+                        </div>
                     );
                 }
                 return <span>-</span>;
